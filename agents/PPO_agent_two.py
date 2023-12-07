@@ -16,6 +16,7 @@ PPO_EPS = 0.2
 learning_rate = 1e-5
 ENTROPY_BETA = 0.01
 
+
 class PPOAgent(object):
     def __init__(self, state_shape, num_actions, save_dir, device="cpu"):
         self.use_raw = False
@@ -37,7 +38,7 @@ class PPOAgent(object):
         obs = torch.FloatTensor(state['observation']).unsqueeze(0)
         action_index = list(np.where(state['action_mask'] == 1))[0]
         action_mask = list(state['action_mask'])
-        policy_values = self.actor_net(obs).squeeze(0)
+        policy_values = self.actor_net(obs).squeeze(0).detach()
         legal_actions_values = []
 
         for index, mask in enumerate(action_mask):
@@ -166,7 +167,7 @@ class PPOAgent(object):
         self.critic_net.load_state_dict(checkpoint["critic_net"])
         self.optim_act.load_state_dict(checkpoint["actor_optimizer"])
         self.optim_critic.load_state_dict(checkpoint["critic_optimizer"])
-        self.best_rewards= checkpoint['best_rewards']
+        self.best_rewards = checkpoint['best_rewards']
         print("the model has loaded")
         print(self.actor_net.state_dict())
 

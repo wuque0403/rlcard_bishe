@@ -14,7 +14,7 @@ GAMMA = 0.99
 GAE_LAMBDA = 0.95
 PPO_EPS = 0.2
 learning_rate = 1e-5
-ENTROPY_BETA = 0.01
+
 
 class PPOAgent(object):
     def __init__(self, state_shape, num_actions, save_dir, device="cpu"):
@@ -88,21 +88,17 @@ class PPOAgent(object):
 
                 # training actor_net
                 self.optim_act.zero_grad()
-                policy_prob_v = self.actor_net(batch_obs)
-                new_policy_prob = torch.log(policy_prob_v.gather(1, batch_actions.unsqueeze(-1)).
+                new_policy_prob = torch.log(self.actor_net(batch_obs).gather(1, batch_actions.unsqueeze(-1)).
                                             squeeze(-1) + 1e-6)
                 ratio_v = torch.exp(new_policy_prob-batch_old_prob)
                 surr_obj_v = ratio_v * batch_adv
                 clipped_surr_obj_v = batch_adv * torch.clamp(ratio_v, 1.0-PPO_EPS, 1.0+PPO_EPS)
                 loss_policy_v = -torch.min(surr_obj_v, clipped_surr_obj_v).mean()
-                # add entropy loss
-                entropy_loss = ENTROPY_BETA * (policy_prob_v * torch.log(policy_prob_v)).sum(dim=1).mean()
-                loss_policy_entropy = loss_policy_v + entropy_loss
-                loss_policy_entropy.backward()
+                loss_policy_v.backward()
                 self.optim_act.step()
 
                 sum_loss_value += loss_value.item()
-                sum_policy_value += loss_policy_entropy.item()
+                sum_policy_value += loss_policy_v.item()
                 # print("max_ratio: %.2f, max_adv: %.2f" % (torch.max(ratio_v).item(), torch.max(batch_adv).item()))
             print("Step%d——loss_value: %.3f, loss_policy_value: %.3f" % (self.total_steps, sum_loss_value,
                                                                          sum_policy_value))

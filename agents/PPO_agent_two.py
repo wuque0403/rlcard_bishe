@@ -8,14 +8,13 @@ from tensorboardX import SummaryWriter
 
 
 PPO_epoches = 10
-batch_size = 64
+batch_size = 32
 trajectory_size = 2049
 GAMMA = 0.99
 GAE_LAMBDA = 0.95
 PPO_EPS = 0.2
 learning_rate = 1e-5
 ENTROPY_BETA = 0.01
-
 
 class PPOAgent(object):
     def __init__(self, state_shape, num_actions, save_dir, device="cpu"):
@@ -177,9 +176,9 @@ class ActorNet(torch.nn.Module):
         super(ActorNet, self).__init__()
 
         self.conv = torch.nn.Sequential(
-            torch.nn.Conv2d(input_shape[0], 64, kernel_size=2, stride=1),
+            torch.nn.Conv2d(input_shape[0], 32, kernel_size=2, stride=2),
             torch.nn.Tanh(),
-            torch.nn.Conv2d(64, 128, kernel_size=2, stride=1),
+            torch.nn.Conv2d(32, 64, kernel_size=2, stride=2),
             torch.nn.Tanh(),
         )
         conv_out_size = self._get_conv_out(input_shape)
@@ -204,9 +203,9 @@ class CriticNet(torch.nn.Module):
         super(CriticNet, self).__init__()
 
         self.conv = torch.nn.Sequential(
-            torch.nn.Conv2d(input_shape[0], 64, kernel_size=2, stride=1),
+            torch.nn.Conv2d(input_shape[0], 32, kernel_size=2, stride=2),
             torch.nn.Tanh(),
-            torch.nn.Conv2d(64, 128, kernel_size=2, stride=1),
+            torch.nn.Conv2d(32, 64, kernel_size=2, stride=2),
             torch.nn.Tanh(),
         )
         conv_out_size = self._get_conv_out(input_shape)

@@ -133,7 +133,8 @@ class DQNAgent(object):
             ts (list): a list of 5 elements that represent the transition
         '''
         (state, action, reward, next_state, done) = tuple(ts)
-        self.feed_memory(state['obs'], action, reward, next_state['obs'], list(next_state['legal_actions'].keys()),
+        legal_actions = list(np.where(next_state['action_mask'] == 1))[0].tolist()
+        self.feed_memory(state['observation'], action, reward, next_state['observation'], legal_actions,
                          done)
         self.total_t += 1
         tmp = self.total_t - self.replay_memory_init_size
@@ -152,13 +153,16 @@ class DQNAgent(object):
         '''
         q_values = self.predict(state)
         epsilon = self.epsilons[min(self.total_t, self.epsilon_decay_steps - 1)]
-        legal_actions = list(state['legal_actions'].keys())
+        # legal_actions = list(state['legal_actions'].keys())
+        legal_actions = list(np.where(state['action_mask'] == 1))[0].tolist()
         probs = np.ones(len(legal_actions), dtype=float) * epsilon / len(legal_actions)
         best_action_idx = legal_actions.index(np.argmax(q_values))
         probs[best_action_idx] += (1.0 - epsilon)
         action_idx = np.random.choice(np.arange(len(probs)), p=probs)
-
-        return legal_actions[action_idx]
+        # 自己修改的
+        best_action = [0] * self.num_actions
+        best_action[legal_actions[action_idx]] = 1
+        return best_action
 
     def eval_step(self, state):
         ''' Predict the action for evaluation purpose.
@@ -189,9 +193,10 @@ class DQNAgent(object):
             q_values (numpy.array): a 1-d array where each entry represents a Q value
         '''
 
-        q_values = self.q_estimator.predict_nograd(np.expand_dims(state['obs'], 0))[0]
+        q_values = self.q_estimator.predict_nograd(np.expand_dims(state['observation'], 0))[0]
         masked_q_values = -np.inf * np.ones(self.num_actions, dtype=float)
-        legal_actions = list(state['legal_actions'].keys())
+        # legal_actions = list(state['legal_actions'].keys())
+        legal_actions = list(np.where(state['action_mask'] == 1))[0].tolist()
         masked_q_values[legal_actions] = q_values[legal_actions]
 
         return masked_q_values

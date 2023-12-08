@@ -8,12 +8,13 @@ from tensorboardX import SummaryWriter
 
 
 PPO_epoches = 10
-batch_size = 32
+batch_size = 64
 trajectory_size = 2049
 GAMMA = 0.99
 GAE_LAMBDA = 0.95
 PPO_EPS = 0.2
-learning_rate = 1e-5
+learning_rate_actor = 1e-4
+learning_rate_critic = 1e-3
 
 
 class PPOAgent(object):
@@ -22,8 +23,8 @@ class PPOAgent(object):
         # self.actor_net_old = ActorNet(state_shape, num_actions)
         self.actor_net = ActorNet(state_shape, num_actions)
         self.critic_net = CriticNet(state_shape)
-        self.optim_act = torch.optim.Adam(self.actor_net.parameters(), lr=learning_rate)
-        self.optim_critic = torch.optim.Adam(self.critic_net.parameters(), lr=learning_rate)
+        self.optim_act = torch.optim.Adam(self.actor_net.parameters(), lr=learning_rate_actor)
+        self.optim_critic = torch.optim.Adam(self.critic_net.parameters(), lr=learning_rate_critic)
         self.device = device
         self.save_dir = save_dir
         self.total_rewards = deque(maxlen=100)  # 记录最近100场对局的奖励
@@ -68,6 +69,8 @@ class PPOAgent(object):
         print("one hundred games mean reward : %.2f" % mean_episodes_reward)
         self.writer.add_scalar('mean_episodes_reward', mean_episodes_reward, self.total_steps)
 
+        total_loss_value = 0
+        total_policy_value = 0
         for epoch in range(PPO_epoches):
             sum_loss_value = 0
             sum_policy_value = 0
@@ -102,8 +105,13 @@ class PPOAgent(object):
                 # print("max_ratio: %.2f, max_adv: %.2f" % (torch.max(ratio_v).item(), torch.max(batch_adv).item()))
             print("Step%d——loss_value: %.3f, loss_policy_value: %.3f" % (self.total_steps, sum_loss_value,
                                                                          sum_policy_value))
-            self.writer.add_scalar('sum_loss_value', sum_loss_value, self.total_steps)
-            self.writer.add_scalar('sum_policy_loss', sum_policy_value, self.total_steps)
+            # self.writer.add_scalar('sum_loss_value', sum_loss_value, self.total_steps)
+            # self.writer.add_scalar('sum_policy_loss', sum_policy_value, self.total_steps)
+            total_loss_value += sum_loss_value
+            total_policy_value += sum_policy_value
+
+        self.writer.add_scalar('avg_loss_value', total_loss_value/PPO_epoches, self.total_steps)
+        self.writer.add_scalar('avg_policy_value', total_policy_value/PPO_epoches, self.total_steps)
         trajectory.clear()
 
         if self.best_rewards is None or self.best_rewards < mean_episodes_reward:

@@ -61,10 +61,12 @@ class PPOAgent(object):
         trajectory_adv = (trajectory_adv - torch.mean(trajectory_adv)) / torch.std(trajectory_adv)
         trajectory_ref = (trajectory_ref - torch.mean(trajectory_ref)) / torch.std(trajectory_ref)
 
+        # 记录最近100个对局的结果
         array_dones = np.array(dones)
         episode_end_index = list(np.where(array_dones==True))[0]
         for index in episode_end_index:
-            self.total_rewards.append(rewards[index])
+            if rewards[index] != -1:
+                self.total_rewards.append(rewards[index])
         mean_episodes_reward = float(np.mean(self.total_rewards))
         print("one hundred games mean reward : %.2f" % mean_episodes_reward)
         self.writer.add_scalar('mean_episodes_reward', mean_episodes_reward, self.total_steps)
@@ -115,12 +117,11 @@ class PPOAgent(object):
         trajectory.clear()
 
         if self.best_rewards is None or self.best_rewards < mean_episodes_reward:
-            self.save(self.save_dir)
+            # self.save(self.save_dir)
             if self.best_rewards is not None:
                 print("Best_mean_rewards updated %.2f -> %.2f, Model saved" % (self.best_rewards, mean_episodes_reward))
             self.best_rewards = mean_episodes_reward
         print("best_rewards is %.2f" % self.best_rewards)
-        return self.best_rewards
 
     def calc_adv_ref(self, critic_net, states, rewards, dones, device="cpu"):
         # obs_array = [state['observation'] for state in states]
@@ -170,7 +171,7 @@ class PPOAgent(object):
         self.critic_net.load_state_dict(checkpoint["critic_net"])
         self.optim_act.load_state_dict(checkpoint["actor_optimizer"])
         self.optim_critic.load_state_dict(checkpoint["critic_optimizer"])
-        self.best_rewards = checkpoint['best_rewards']
+        # self.best_rewards = checkpoint['best_rewards']
         print("the model has loaded")
         print(self.actor_net.state_dict())
 

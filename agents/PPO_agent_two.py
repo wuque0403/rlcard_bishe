@@ -9,7 +9,7 @@ from tensorboardX import SummaryWriter
 
 PPO_epoches = 10
 batch_size = 64
-trajectory_size = 2049
+trajectory_size = 4097
 GAMMA = 0.99
 GAE_LAMBDA = 0.95
 PPO_EPS = 0.2
